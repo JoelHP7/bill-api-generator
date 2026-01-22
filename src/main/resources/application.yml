@@ -1,3 +1,18 @@
 spring:
   application:
     name: bill-api-generator
+#  jpa:
+#    open-in-view: false
+#    generate-ddl: false
+#    show-sql: false
+#    properties:
+#      hibernate:
+#        enable_lazy_load_no_trans: true
+#    hibernate:
+#      naming:
+#        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+#  datasource:
+#    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://localhost:5432/rmp
+#    username: postgres
+#    password: aaaaaa

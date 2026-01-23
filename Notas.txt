@@ -60,4 +60,12 @@ Además, se me ha ocurrido otra cosa:
     Integrar con el microservicio de generación de facturas a través de API REST.
     Permitir la búsqueda y filtrado de facturas por cliente, fecha y estado.
     Añadir funcionalidad para descargar facturas en formato DOCX desde la interfaz web.
-    Añadiir dashboards para visualizar estadísticas de facturación.
+    Añadir dashboards para visualizar estadísticas de facturación.
+
+- Conectar aplicación con bancos
+    ING Direct API para obtener movimientos bancarios automáticamente y comprobar si las facturas han sido pagadas.
+
+- Dockerizar backend y frontend
+    Crear Dockerfile para el microservicio de generación de facturas.
+    Crear Dockerfile para el microfrontend de gestión de facturas.
+    Configurar docker-compose para levantar ambos servicios junto con la base de datos.

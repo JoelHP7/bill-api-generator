@@ -12,104 +12,151 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
-/**
- * Controlador REST para la generación de Facturas
- */
 @RestController
 @RequestMapping("/api/facturas")
 @RequiredArgsConstructor
 public class FacturaController {
-
+    
     private final FacturaService facturaService;
-
+    
     /**
-     * Genera una factura para el mes actual (devuelve JSON)
+     * ========================================
+     * ENDPOINTS NUEVOS CON REF (RECOMENDADO)
+     * ========================================
+     */
+    
+    /**
+     * Genera una factura usando REF del cliente
+     * GET /api/facturas/generate/ref/{clienteRef}?horas=160
+     * 
+     * Retorna:
+     * - status: CREADA | DUPLICADA
+     * - mensaje: Descripción
+     * - factura: FacturaDto
+     * - sugerencias: [] (solo si es duplicada)
+     */
+    @GetMapping("/generate/ref/{clienteRef}")
+    public ResponseEntity<Map<String, Object>> generateFacturaByRef(
+            @PathVariable String clienteRef,
+            @RequestParam Integer horas,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        try {
+            Map<String, Object> response = facturaService.generateFacturaByRef(clienteRef, horas, fecha);
+            
+            String status = (String) response.get("status");
+            HttpStatus httpStatus = "CREADA".equals(status) ? HttpStatus.CREATED : HttpStatus.OK;
+            
+            return ResponseEntity.status(httpStatus).body(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Genera una factura Y descarga el documento DOCX usando REF
+     * GET /api/facturas/generate/ref/{clienteRef}/document?horas=160
+     */
+    @GetMapping("/generate/ref/{clienteRef}/document")
+    public ResponseEntity<byte[]> generateFacturaDocumentByRef(
+            @PathVariable String clienteRef,
+            @RequestParam Integer horas,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        try {
+            ByteArrayOutputStream document = facturaService.generateFacturaWithDocumentByRef(clienteRef, horas, fecha);
+            
+            String filename = "factura-" + clienteRef + "-" + 
+                    (fecha != null ? fecha.getYear() : LocalDate.now().getYear()) + ".docx";
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(document.size());
+            
+            return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Obtiene todas las facturas de un cliente por REF
+     * GET /api/facturas/cliente/{clienteRef}
+     */
+    @GetMapping("/cliente/{clienteRef}")
+    public ResponseEntity<List<FacturaDto>> getFacturasByClienteRef(@PathVariable String clienteRef) {
+        try {
+            List<FacturaDto> facturas = facturaService.findByClienteRef(clienteRef);
+            return ResponseEntity.ok(facturas);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
+     * ========================================
+     * ENDPOINTS LEGACY CON ID (COMPATIBILIDAD)
+     * ========================================
+     */
+    
+    /**
+     * Genera una factura usando ID del cliente (legacy)
      * GET /api/facturas/generate/{clientId}?horas=160
      */
     @GetMapping("/generate/{clientId}")
-    public ResponseEntity<FacturaDto> generateFacturaCurrentMonth(
+    public ResponseEntity<Map<String, Object>> generateFactura(
             @PathVariable Long clientId,
-            @RequestParam Integer horas) {
+            @RequestParam Integer horas,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
         try {
-            FacturaDto factura = facturaService.generateFactura(clientId, horas, null);
-            return ResponseEntity.status(HttpStatus.CREATED).body(factura);
+            Map<String, Object> response = facturaService.generateFactura(clientId, horas, fecha);
+            
+            String status = (String) response.get("status");
+            HttpStatus httpStatus = "CREADA".equals(status) ? HttpStatus.CREATED : HttpStatus.OK;
+            
+            return ResponseEntity.status(httpStatus).body(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
         }
     }
-
+    
     /**
-     * Genera una factura para una fecha específica (devuelve JSON)
-     * GET /api/facturas/generate/{clientId}/{date}?horas=160
-     * Ejemplo: /api/facturas/generate/1/2024-01-15?horas=160
-     */
-    @GetMapping("/generate/{clientId}/{date}")
-    public ResponseEntity<FacturaDto> generateFacturaWithDate(
-            @PathVariable Long clientId,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam Integer horas) {
-        try {
-            FacturaDto factura = facturaService.generateFactura(clientId, horas, date);
-            return ResponseEntity.status(HttpStatus.CREATED).body(factura);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    /**
-     * Genera una factura Y descarga el documento DOCX (mes actual)
+     * Genera documento usando ID (legacy)
      * GET /api/facturas/generate/{clientId}/document?horas=160
      */
     @GetMapping("/generate/{clientId}/document")
-    public ResponseEntity<byte[]> generateFacturaDocumentCurrentMonth(
+    public ResponseEntity<byte[]> generateFacturaDocument(
             @PathVariable Long clientId,
-            @RequestParam Integer horas) {
+            @RequestParam Integer horas,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
         try {
-            ByteArrayOutputStream document = facturaService.generateFacturaWithDocument(clientId, horas, null);
-
-            // Obtener el número de factura para el nombre del archivo
-            String filename = "factura-" + LocalDate.now().getYear() + ".docx";
-
+            ByteArrayOutputStream document = facturaService.generateFacturaWithDocument(clientId, horas, fecha);
+            
+            String filename = "factura-" + (fecha != null ? fecha.getYear() : LocalDate.now().getYear()) + ".docx";
+            
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             headers.setContentDispositionFormData("attachment", filename);
             headers.setContentLength(document.size());
-
-            return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.CREATED);
+            
+            return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
+    
     /**
-     * Genera una factura Y descarga el documento DOCX (fecha específica)
-     * GET /api/facturas/generate/{clientId}/{date}/document?horas=160
-     * Ejemplo: /api/facturas/generate/1/2024-01-15/document?horas=160
+     * ========================================
+     * ENDPOINTS COMUNES
+     * ========================================
      */
-    @GetMapping("/generate/{clientId}/{date}/document")
-    public ResponseEntity<byte[]> generateFacturaDocumentWithDate(
-            @PathVariable Long clientId,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam Integer horas) {
-        try {
-            ByteArrayOutputStream document = facturaService.generateFacturaWithDocument(clientId, horas, date);
-
-            String filename = "factura-" + date.getYear() + ".docx";
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", filename);
-            headers.setContentLength(document.size());
-
-            return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
+    
     /**
-     * Obtiene una factura por ID (devuelve JSON)
+     * Obtiene una factura por ID
      * GET /api/facturas/{id}
      */
     @GetMapping("/{id}")

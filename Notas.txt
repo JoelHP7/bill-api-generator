@@ -9,3 +9,26 @@ docker run -d --name bill_generator -e POSTGRES_DB=bill_generator -e POSTGRES_US
 22-01-2026
 
 Próximos pasos: verificar si la factura ya ha sido generada anteriormente cuando se solicite, si coincide fecha, cliente y horas, se genera y se envía el documento. Si no, se devuelve mensaje de error de lo que no cuadra para decidir si hacer un PUT para actualizar y luego solicitar documento o si no hacer nada.
+
+¿Qué más hacer?
+- Hacer endpoint para enviar factura por email.
+    Añadir datos de contacto por cliente (tabla-entidad Contacto).
+    Hacer cuerpo del email.
+    Hacer envío de email con factura adjunta.
+- En MES_FACTURA, coger también año, no solo mes.
+- Campo ref a Cliente, y modificar endpoint de generación de factura para no usar id si no ref.
+- Numeración de la factura, seguir el orden que tengo ya en las externas.
+    Para hacerlo, usar un sequencial autogenerado de base de datos para que sea para todos los clientes.
+- Incorporar campos a Cliente:
+    Fecha de creación.
+    Fecha de actualización.
+    Fecha de baja.
+    Añadir entidad Contacto
+    Contrato (BLOB o CLOB en base de datos y fichero en sistema).
+- Tabla de histórico de cambios en Cliente.
+- Hacer endpoint para la generación de facturas sin cliente.
+    Para usar en casos puntuales.
+    Aquí, se solicitarán los diferentes campos que se requieren en la factura, directamente en la petición.
+    Se guardará esa factura en una tabla aparte, con un id autogenerado como Factura_Puntual o algo por el estilo.
+- Refactoriar código para que esté todo en inglés.
+- Hacer docker-compose para levantar todo junto (base de datos y microservicio).

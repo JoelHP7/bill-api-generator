@@ -1,6 +1,8 @@
 package com.bill_api_generator.bill_api_generator.controller;
 
 import com.bill_api_generator.bill_api_generator.dto.ClienteDto;
+import com.bill_api_generator.bill_api_generator.model.ClienteHistorico;
+import com.bill_api_generator.bill_api_generator.service.ClienteHistoricoService;
 import com.bill_api_generator.bill_api_generator.service.ClienteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,18 +12,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Controlador REST para la gestión de Clientes (CRUD)
- */
 @RestController
 @RequestMapping("/api/clientes")
 @RequiredArgsConstructor
 public class ClienteController {
     
     private final ClienteService clienteService;
+    private final ClienteHistoricoService clienteHistoricoService;
     
     /**
-     * Obtener todos los clientes
+     * Obtiene todos los clientes activos
      * GET /api/clientes
      */
     @GetMapping
@@ -31,7 +31,7 @@ public class ClienteController {
     }
     
     /**
-     * Obtener un cliente por ID
+     * Obtiene un cliente por ID
      * GET /api/clientes/{id}
      */
     @GetMapping("/{id}")
@@ -45,13 +45,27 @@ public class ClienteController {
     }
     
     /**
-     * Crear un nuevo cliente
+     * Obtiene un cliente por REF
+     * GET /api/clientes/ref/{ref}
+     */
+    @GetMapping("/ref/{ref}")
+    public ResponseEntity<ClienteDto> getClienteByRef(@PathVariable String ref) {
+        try {
+            ClienteDto cliente = clienteService.findByRef(ref);
+            return ResponseEntity.ok(cliente);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
+     * Crea un nuevo cliente
      * POST /api/clientes
      */
     @PostMapping
-    public ResponseEntity<ClienteDto> createCliente(@Valid @RequestBody ClienteDto clienteDto) {
+    public ResponseEntity<ClienteDto> createCliente(@Valid @RequestBody ClienteDto dto) {
         try {
-            ClienteDto createdCliente = clienteService.create(clienteDto);
+            ClienteDto createdCliente = clienteService.create(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdCliente);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -59,15 +73,15 @@ public class ClienteController {
     }
     
     /**
-     * Actualizar un cliente existente
+     * Actualiza un cliente
      * PUT /api/clientes/{id}
      */
     @PutMapping("/{id}")
     public ResponseEntity<ClienteDto> updateCliente(
-            @PathVariable Long id, 
-            @Valid @RequestBody ClienteDto clienteDto) {
+            @PathVariable Long id,
+            @Valid @RequestBody ClienteDto dto) {
         try {
-            ClienteDto updatedCliente = clienteService.update(id, clienteDto);
+            ClienteDto updatedCliente = clienteService.update(id, dto);
             return ResponseEntity.ok(updatedCliente);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -75,7 +89,7 @@ public class ClienteController {
     }
     
     /**
-     * Eliminar un cliente
+     * Elimina un cliente (soft delete)
      * DELETE /api/clientes/{id}
      */
     @DeleteMapping("/{id}")
@@ -86,5 +100,29 @@ public class ClienteController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+    
+    /**
+     * Restaura un cliente eliminado
+     * POST /api/clientes/{id}/restore
+     */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<Void> restoreCliente(@PathVariable Long id) {
+        try {
+            clienteService.restore(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    /**
+     * Obtiene el histórico de cambios de un cliente
+     * GET /api/clientes/{id}/historico
+     */
+    @GetMapping("/{id}/historico")
+    public ResponseEntity<List<ClienteHistorico>> getHistoricoCliente(@PathVariable Long id) {
+        List<ClienteHistorico> historico = clienteHistoricoService.getHistorialCliente(id);
+        return ResponseEntity.ok(historico);
     }
 }

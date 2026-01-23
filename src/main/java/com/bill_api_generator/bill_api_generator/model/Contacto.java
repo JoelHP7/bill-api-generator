@@ -5,39 +5,37 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "clientes")
+@Table(name = "contactos")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Cliente {
+public class Contacto {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, unique = true, length = 50)
-    private String ref;            // Referencia única del cliente (ej: "AKKODIS", "TECH_SOL")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
     
     @Column(nullable = false)
-    private String nombre;         // p.ej. "AXPE CONSULTING, S.L."
-    
-    @Column(nullable = false, unique = true)
-    private String cif;            // p.ej. "B84184548"
+    private String nombre;
     
     @Column(nullable = false)
-    private String direccion;      // p.ej. "Calle Arturo Soria 122, Madrid"
+    private String email;
     
-    private String cp;             // p.ej. "08204"
+    private String telefono;
+    
+    private String cargo;  // Puesto en la empresa
     
     @Column(nullable = false)
-    private BigDecimal tarifa;     // Tarifa por hora
+    private Boolean principal = false;  // Contacto principal
     
-    // Campos de auditoría
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

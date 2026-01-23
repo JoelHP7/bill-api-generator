@@ -1,15 +1,13 @@
 package com.bill_api_generator.bill_api_generator.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,29 +15,25 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ClienteDto {
+public class ContactoDto {
     
     private Long id;
     
-    @NotBlank(message = "La referencia es obligatoria")
-    private String ref;
+    private Long clienteId;
     
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
     
-    @NotBlank(message = "El CIF es obligatorio")
-    private String cif;
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "Email inválido")
+    private String email;
     
-    @NotBlank(message = "La dirección es obligatoria")
-    private String direccion;
+    private String telefono;
     
-    private String cp;
+    private String cargo;
     
-    @NotNull(message = "La tarifa es obligatoria")
-    @Positive(message = "La tarifa debe ser mayor que cero")
-    private BigDecimal tarifa;
+    private Boolean principal;
     
-    // Campos de auditoría (solo lectura)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

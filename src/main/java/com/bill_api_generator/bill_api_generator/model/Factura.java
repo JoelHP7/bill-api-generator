@@ -14,11 +14,18 @@ import java.time.LocalDate;
 public class Factura {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "factura_numero_seq")
+    @SequenceGenerator(
+        name = "factura_numero_seq",
+        sequenceName = "factura_numero_secuencial",
+        initialValue = 70,
+        allocationSize = 1
+    )
+    @Column(name = "numero_secuencial")
+    private Long numeroSecuencial;  // Número secuencial global (70, 71, 72...)
     
     @Column(nullable = false, unique = true)
-    private String numeroFactura;
+    private String numeroFactura;  // Formato: 2026-0070, 2026-0071...
     
     @Column(nullable = false)
     private Integer horas;

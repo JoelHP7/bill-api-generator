@@ -1,0 +1,11 @@
+Lo que también se me ha ocurrido hace un rato (ahora son las 23h) es que además de generar las facturas, debería hacer un endpoint en mi servicio de generación de facturas que, con los datos del cliente, tenga un cuerpo guardado y haga el envío de la factura. Solamente tendría que poner los diferentes correos donde enviar el mensaje y en función del cliente, revisar si añadir o no el parte de horas que ese sí me tocará hacerlo mano y con la factura ya generada y revisada por mí, solamente tendré que llamar al endpoint, con los diferentes clientes a los que enviar el correo y et voilà.
+De hecho, se me acaba de ocurrir otra idea y es utilizar el Stream Deck para hacer todo esto, creando atajos para la creación de la factura en cada cliente. Un atajo sería para inicializar todo y con comandos de teclado abriría IntelliJ y lanzaría el microservicio o si lo he dockerizado, solo tendrá que lanzar un comando en CMD para arrancarlo junto con la base de datos y todo.
+
+
+Creación de la base de datos
+docker run -d --name bill_generator -e POSTGRES_DB=bill_generator -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=aaaaaa -p 35050:5432 postgres:12-alpine
+
+
+22-01-2026
+
+Próximos pasos: verificar si la factura ya ha sido generada anteriormente cuando se solicite, si coincide fecha, cliente y horas, se genera y se envía el documento. Si no, se devuelve mensaje de error de lo que no cuadra para decidir si hacer un PUT para actualizar y luego solicitar documento o si no hacer nada.

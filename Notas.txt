@@ -32,3 +32,20 @@ Próximos pasos: verificar si la factura ya ha sido generada anteriormente cuand
     Se guardará esa factura en una tabla aparte, con un id autogenerado como Factura_Puntual o algo por el estilo.
 - Refactoriar código para que esté todo en inglés.
 - Hacer docker-compose para levantar todo junto (base de datos y microservicio).
+
+23-01-2026
+De lo anterior, falta por hacer:
+- Hacer endpoint para la generación de facturas sin cliente.
+    Para usar en casos puntuales.
+    Aquí, se solicitarán los diferentes campos que se requieren en la factura, directamente en la petición.
+    Se guardará esa factura en una tabla aparte, con un id autogenerado como Factura_Puntual o algo por el estilo.
+- Refactoriar código para que esté todo en inglés.
+- Hacer docker-compose para levantar todo junto (base de datos y microservicio).
+
+Además, se me ha ocurrido otra cosa:
+- Gestión de excepciones personalizadas.
+    Crear clases de excepción personalizadas para los diferentes errores que puedan surgir en el microservicio.
+    Manejar estas excepciones en un controlador global para devolver respuestas adecuadas al cliente.
+    Esto mejorará la claridad y el mantenimiento del código.
+- Documentación del API.
+    Utilizar Swagger o una herramienta similar para documentar los endpoints del microservicio.

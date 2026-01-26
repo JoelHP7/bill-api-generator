@@ -1,6 +1,6 @@
 package com.bill_api_generator.bill_api_generator.service;
 
-import com.bill_api_generator.bill_api_generator.dto.FacturaDto;
+import com.bill_api_generator.bill_api_generator.dto.InvoiceDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.*;
 import org.springframework.core.io.ClassPathResource;
@@ -15,6 +15,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Service for generating documents from templates.
+ * Handles DOCX generation using templates with placeholder replacement.
+ */
 @Service
 @Slf4j
 public class DocumentGeneratorService {
@@ -31,29 +35,30 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Genera un documento DOCX a partir de una FacturaDto
-     * @param facturaDto DTO con todos los datos de la factura
-     * @return ByteArrayOutputStream con el documento generado
-     * @throws IOException si hay error al leer la plantilla o generar el documento
+     * Generates a DOCX document from an InvoiceDto.
+     *
+     * @param invoiceDto DTO with all invoice data
+     * @return ByteArrayOutputStream with the generated document
+     * @throws IOException if there's an error reading the template or generating the document
      */
-    public ByteArrayOutputStream generateFacturaDocx(FacturaDto facturaDto) throws IOException {
-        log.info("Generando documento DOCX para factura: {}", facturaDto.getNumeroFactura());
+    public ByteArrayOutputStream generateInvoiceDocx(InvoiceDto invoiceDto) throws IOException {
+        log.info("Generating DOCX document for invoice: {}", invoiceDto.getInvoiceNumber());
 
-        // 1. Cargar la plantilla desde resources
+        // 1. Load template from resources
         ClassPathResource resource = new ClassPathResource(TEMPLATE_PATH);
 
         try (InputStream templateStream = resource.getInputStream();
              XWPFDocument doc = new XWPFDocument(templateStream)) {
 
-            // 2. Crear mapa de valores para reemplazar
-            Map<String, String> values = buildReplacementMap(facturaDto);
+            // 2. Create replacement values map
+            Map<String, String> values = buildReplacementMap(invoiceDto);
 
-            // 3. Reemplazar en párrafos
+            // 3. Replace in paragraphs
             for (XWPFParagraph paragraph : doc.getParagraphs()) {
                 replaceInParagraph(paragraph, values);
             }
 
-            // 4. Reemplazar en tablas
+            // 4. Replace in tables
             for (XWPFTable table : doc.getTables()) {
                 for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
@@ -64,52 +69,52 @@ public class DocumentGeneratorService {
                 }
             }
 
-            // 5. Escribir el documento a un ByteArrayOutputStream
+            // 5. Write document to ByteArrayOutputStream
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             doc.write(outputStream);
 
-            log.info("Documento DOCX generado exitosamente para factura: {}", facturaDto.getNumeroFactura());
+            log.info("DOCX document generated successfully for invoice: {}", invoiceDto.getInvoiceNumber());
             return outputStream;
 
         } catch (IOException e) {
-            log.error("Error al generar documento DOCX para factura: {}", facturaDto.getNumeroFactura(), e);
+            log.error("Error generating DOCX document for invoice: {}", invoiceDto.getInvoiceNumber(), e);
             throw e;
         }
     }
 
     /**
-     * Construye el mapa de reemplazos a partir del FacturaDto
+     * Builds the replacement map from the InvoiceDto.
      */
-    private Map<String, String> buildReplacementMap(FacturaDto facturaDto) {
+    private Map<String, String> buildReplacementMap(InvoiceDto invoiceDto) {
         Map<String, String> values = new HashMap<>();
 
-        // Datos del emisor
-        values.put("EMISOR_NOMBRE", facturaDto.getEmisorNombre());
+        // Issuer data
+        values.put("EMISOR_NOMBRE", invoiceDto.getIssuerName());
 
-        // Datos de la factura
-        values.put("NUMERO_FACTURA", facturaDto.getNumeroFactura());
-        values.put("FECHA_FACTURA", facturaDto.getFecha().format(DATE_FORMATTER));
+        // Invoice data
+        values.put("NUMERO_FACTURA", invoiceDto.getInvoiceNumber());
+        values.put("FECHA_FACTURA", invoiceDto.getDate().format(DATE_FORMATTER));
 
-        // Datos del cliente
-        values.put("NOMBRE_CLIENTE", facturaDto.getNombreCliente());
-        values.put("CIF_CLIENTE", facturaDto.getCifCliente());
-        values.put("DIRECCION_CLIENTE", facturaDto.getDireccionCliente());
+        // Client data
+        values.put("NOMBRE_CLIENTE", invoiceDto.getClientName());
+        values.put("CIF_CLIENTE", invoiceDto.getClientTaxId());
+        values.put("DIRECCION_CLIENTE", invoiceDto.getClientAddress());
 
-        // Descripción y horas
-        values.put("MES_FACTURA", facturaDto.getMesFact());
-        values.put("HORAS_FACTURA", String.valueOf(facturaDto.getHoras()));
+        // Description and hours
+        values.put("MES_FACTURA", invoiceDto.getBillingMonth());
+        values.put("HORAS_FACTURA", String.valueOf(invoiceDto.getHours()));
 
-        // Importes formateados
-        values.put("IMPONIBLE_FACTURA", formatMoney(facturaDto.getImponible()));
-        values.put("IRPF_FACTURA", formatMoney(facturaDto.getIrpf()));
-        values.put("IVA_FACTURA", formatMoney(facturaDto.getIva()));
-        values.put("TOTAL_FACTURA", formatMoney(facturaDto.getTotal()));
+        // Formatted amounts
+        values.put("IMPONIBLE_FACTURA", formatMoney(invoiceDto.getSubtotal()));
+        values.put("IRPF_FACTURA", formatMoney(invoiceDto.getTaxWithholding()));
+        values.put("IVA_FACTURA", formatMoney(invoiceDto.getVat()));
+        values.put("TOTAL_FACTURA", formatMoney(invoiceDto.getTotal()));
 
         return values;
     }
 
     /**
-     * Formatea un número como moneda española (1.234,56€)
+     * Formats a number as Spanish currency (1.234,56€).
      */
     private String formatMoney(java.math.BigDecimal amount) {
         if (amount == null) {
@@ -119,13 +124,13 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Reemplaza los placeholders en un párrafo manteniendo el formato
+     * Replaces placeholders in a paragraph while maintaining formatting.
      */
     private void replaceInParagraph(XWPFParagraph paragraph, Map<String, String> values) {
         List<XWPFRun> runs = paragraph.getRuns();
         if (runs.isEmpty()) return;
 
-        // Obtener todo el texto del párrafo
+        // Get all text from the paragraph
         StringBuilder fullText = new StringBuilder();
         for (XWPFRun run : runs) {
             String runText = run.getText(0);
@@ -137,7 +142,7 @@ public class DocumentGeneratorService {
         String text = fullText.toString();
         if (text.isEmpty()) return;
 
-        // Verificar si hay algo que reemplazar
+        // Check if there's anything to replace
         boolean hasReplacement = false;
         for (Map.Entry<String, String> entry : values.entrySet()) {
             String placeholder = "{{" + entry.getKey() + "}}";
@@ -149,23 +154,23 @@ public class DocumentGeneratorService {
 
         if (!hasReplacement) return;
 
-        // Copiar formato del primer run ANTES de eliminar
+        // Copy format from first run BEFORE deleting
         XWPFRun firstRun = runs.get(0);
         RunProperties savedFormat = copyRunFormat(firstRun);
 
-        // Eliminar todos los runs
+        // Delete all runs
         for (int i = runs.size() - 1; i >= 0; i--) {
             paragraph.removeRun(i);
         }
 
-        // Crear nuevo run con el texto reemplazado y formato preservado
+        // Create new run with replaced text and preserved format
         XWPFRun newRun = paragraph.createRun();
         newRun.setText(text, 0);
         applyRunFormat(newRun, savedFormat);
     }
 
     /**
-     * Copia las propiedades de formato de un run
+     * Copies format properties from a run.
      */
     private RunProperties copyRunFormat(XWPFRun source) {
         RunProperties props = new RunProperties();
@@ -216,7 +221,7 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Aplica las propiedades de formato a un run
+     * Applies format properties to a run.
      */
     private void applyRunFormat(XWPFRun target, RunProperties props) {
         if (props.fontFamily != null) {
@@ -241,7 +246,7 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Clase interna para almacenar propiedades de formato de un run
+     * Inner class to store run format properties.
      */
     private static class RunProperties {
         String fontFamily;

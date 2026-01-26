@@ -12,34 +12,38 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Data Transfer Object for Client entity.
+ * Used for API requests and responses.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ClienteDto {
+public class ClientDto {
     
     private Long id;
     
-    @NotBlank(message = "La referencia es obligatoria")
+    @NotBlank(message = "Reference is required")
     private String ref;
     
-    @NotBlank(message = "El nombre es obligatorio")
-    private String nombre;
+    @NotBlank(message = "Name is required")
+    private String name;
     
-    @NotBlank(message = "El CIF es obligatorio")
-    private String cif;
+    @NotBlank(message = "Tax ID is required")
+    private String taxId;
     
-    @NotBlank(message = "La dirección es obligatoria")
-    private String direccion;
+    @NotBlank(message = "Address is required")
+    private String address;
     
-    private String cp;
+    private String postalCode;
     
-    @NotNull(message = "La tarifa es obligatoria")
-    @Positive(message = "La tarifa debe ser mayor que cero")
-    private BigDecimal tarifa;
+    @NotNull(message = "Rate is required")
+    @Positive(message = "Rate must be greater than zero")
+    private BigDecimal rate;
     
-    // Campos de auditoría (solo lectura)
+    // Audit fields (read-only)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

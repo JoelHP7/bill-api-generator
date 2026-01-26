@@ -10,30 +10,35 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * Data Transfer Object for Contact entity.
+ * Used for API requests and responses.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ContactoDto {
+public class ContactDto {
     
     private Long id;
     
-    private Long clienteId;
+    private Long clientId;
     
-    @NotBlank(message = "El nombre es obligatorio")
-    private String nombre;
+    @NotBlank(message = "Name is required")
+    private String name;
     
-    @NotBlank(message = "El email es obligatorio")
-    @Email(message = "Email inválido")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email")
     private String email;
     
-    private String telefono;
+    private String phone;
     
-    private String cargo;
+    private String position;
     
-    private Boolean principal;
+    private Boolean isPrimary;
     
+    // Audit fields (read-only)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

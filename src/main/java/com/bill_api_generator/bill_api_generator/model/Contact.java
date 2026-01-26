@@ -7,35 +7,54 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entity representing a contact person associated with a client.
+ */
 @Entity
-@Table(name = "contactos")
+@Table(name = "contacts")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Contacto {
+public class Contact {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cliente_id", nullable = false)
-    private Cliente cliente;
+    @JoinColumn(name = "client_id", nullable = false)
+    private Client client;
     
+    /**
+     * Contact person's name
+     */
     @Column(nullable = false)
-    private String nombre;
+    private String name;
     
+    /**
+     * Contact person's email
+     */
     @Column(nullable = false)
     private String email;
     
-    private String telefono;
+    /**
+     * Contact person's phone number
+     */
+    private String phone;
     
-    private String cargo;  // Puesto en la empresa
+    /**
+     * Job title/position at the company
+     */
+    private String position;
     
+    /**
+     * Whether this is the primary contact for the client
+     */
     @Column(nullable = false)
-    private Boolean principal = false;  // Contacto principal
+    private Boolean isPrimary = false;
     
+    // Audit fields
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -44,6 +63,9 @@ public class Contacto {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
     
+    /**
+     * Soft delete timestamp
+     */
     @Column
-    private LocalDateTime deletedAt;  // Soft delete
+    private LocalDateTime deletedAt;
 }

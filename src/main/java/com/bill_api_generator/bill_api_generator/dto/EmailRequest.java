@@ -10,22 +10,35 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Data Transfer Object for email sending requests.
+ * Used to send invoices via email to clients.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class EmailRequest {
     
-    @NotNull(message = "El ID de la factura es obligatorio")
-    private Long facturaId;
+    @NotNull(message = "Invoice ID is required")
+    private Long invoiceId;
     
-    @NotBlank(message = "El email del destinatario es obligatorio")
-    @Email(message = "Email inválido")
+    @NotBlank(message = "Recipient email is required")
+    @Email(message = "Invalid email")
     private String to;
     
-    private List<@Email String> cc;  // Copia
+    /**
+     * Carbon copy recipients
+     */
+    private List<@Email String> cc;
     
-    private String asunto;  // Si es null, se genera automáticamente
+    /**
+     * Email subject (if null, will be generated automatically)
+     */
+    private String subject;
     
-    private String mensaje;  // Mensaje adicional personalizado
+    /**
+     * Additional custom message body
+     */
+    private String message;
 }

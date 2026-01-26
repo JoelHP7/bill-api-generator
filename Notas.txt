@@ -69,3 +69,49 @@ Además, se me ha ocurrido otra cosa:
     Crear Dockerfile para el microservicio de generación de facturas.
     Crear Dockerfile para el microfrontend de gestión de facturas.
     Configurar docker-compose para levantar ambos servicios junto con la base de datos.
+
+
+Tareas realizadas:
+- Hacer endpoint para enviar factura por email.
+    Añadir datos de contacto por cliente (tabla-entidad Contacto).
+    Hacer cuerpo del email.
+    Hacer envío de email con factura adjunta.
+- En MES_FACTURA, coger también año, no solo mes.
+- Campo ref a Cliente, y modificar endpoint de generación de factura para no usar id si no ref.
+- Numeración de la factura, seguir el orden que tengo ya en las externas.
+    Para hacerlo, usar un sequencial autogenerado de base de datos para que sea para todos los clientes.
+- Incorporar campos a Cliente:
+    Fecha de creación.
+    Fecha de actualización.
+    Fecha de baja.
+    Añadir entidad Contacto
+    Contrato (BLOB o CLOB en base de datos y fichero en sistema).
+- Tabla de histórico de cambios en Cliente.
+- Eliminar código innecesario y en desuso.
+- Refactoriar código para que esté todo en inglés.
+
+Tareas pendientes:
+- Gestión de excepciones personalizadas.
+    Crear clases de excepción personalizadas para los diferentes errores que puedan surgir en el microservicio.
+    Manejar estas excepciones en un controlador global para devolver respuestas adecuadas al cliente.
+    Esto mejorará la claridad y el mantenimiento del código.
+- Documentación del API.
+    Utilizar Swagger o una herramienta similar para documentar los endpoints del microservicio.
+ - Guardar cálculos de la factura en base de datos.
+    Crear una tabla para almacenar los cálculos realizados para cada factura.
+    Esto permitirá auditar y revisar los cálculos en el futuro si es necesario.
+    También permitirá optimizar el proceso de generación de facturas si los datos no han cambiado.
+    Además, será necesario para implementar el sistema de contabilidad y análisis financiero en el futuro.
+- Implementar pruebas unitarias y de integración.
+- Crear un microfrontend para la gestión de facturas.
+    Permitir a los usuarios ver, generar y enviar facturas desde una interfaz web.
+    Integrar con el microservicio de generación de facturas a través de API REST.
+    Permitir la búsqueda y filtrado de facturas por cliente, fecha y estado.
+    Añadir funcionalidad para descargar facturas en formato DOCX desde la interfaz web.
+    Añadir dashboards para visualizar estadísticas de facturación.
+- Conectar aplicación con bancos
+    ING Direct API para obtener movimientos bancarios automáticamente y comprobar si las facturas han sido pagadas.
+- Dockerizar backend y frontend
+    Crear Dockerfile para el microservicio de generación de facturas.
+    Crear Dockerfile para el microfrontend de gestión de facturas.
+    Configurar docker-compose para levantar ambos servicios junto con la base de datos.

@@ -1,7 +1,7 @@
 package com.bill_api_generator.bill_api_generator.service;
 
 import com.bill_api_generator.bill_api_generator.dto.EmailRequest;
-import com.bill_api_generator.bill_api_generator.dto.FacturaDto;
+import com.bill_api_generator.bill_api_generator.dto.InvoiceDto;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +18,17 @@ import java.text.DecimalFormatSymbols;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+/**
+ * Service class for managing email operations.
+ * Handles sending invoices via email with attachments.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
-    private final FacturaService facturaService;
+    private final InvoiceService invoiceService;
     private final DocumentGeneratorService documentGeneratorService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -37,47 +41,54 @@ public class EmailService {
         MONEY_FORMAT = new DecimalFormat("#,##0.00", symbols);
     }
 
-    public void sendFacturaEmail(EmailRequest request) throws MessagingException, IOException {
-        log.info("Enviando factura por email. FacturaID: {}, To: {}", request.getFacturaId(), request.getTo());
+    /**
+     * Sends an invoice via email with document attachment.
+     *
+     * @param request Email request with recipient details and invoice ID
+     * @throws MessagingException if there's an error sending the email
+     * @throws IOException if there's an error generating the document
+     */
+    public void sendInvoiceEmail(EmailRequest request) throws MessagingException, IOException {
+        log.info("Sending invoice via email. InvoiceID: {}, To: {}", request.getInvoiceId(), request.getTo());
 
-        // Obtener la factura
-        FacturaDto factura = facturaService.findById(request.getFacturaId());
+        // Get the invoice
+        InvoiceDto invoice = invoiceService.findById(request.getInvoiceId());
 
-        // Generar el documento DOCX
-        ByteArrayOutputStream document = documentGeneratorService.generateFacturaDocx(factura);
+        // Generate the DOCX document
+        ByteArrayOutputStream document = documentGeneratorService.generateInvoiceDocx(invoice);
 
-        // Preparar el email
+        // Prepare the email
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        // Configurar destinatarios
+        // Configure recipients
         helper.setTo(request.getTo());
         
         if (request.getCc() != null && !request.getCc().isEmpty()) {
             helper.setCc(request.getCc().toArray(new String[0]));
         }
 
-        // Configurar asunto
-        String asunto = request.getAsunto() != null 
-                ? request.getAsunto() 
-                : "Factura " + factura.getNumeroFactura() + " - " + factura.getNombreCliente();
-        helper.setSubject(asunto);
+        // Configure subject
+        String subject = request.getSubject() != null 
+                ? request.getSubject() 
+                : "Invoice " + invoice.getInvoiceNumber() + " - " + invoice.getClientName();
+        helper.setSubject(subject);
 
-        // Generar cuerpo del email
-        String cuerpoEmail = generarCuerpoEmail(factura, request.getMensaje());
-        helper.setText(cuerpoEmail, true); // true = es HTML
+        // Generate email body
+        String emailBody = generateEmailBody(invoice, request.getMessage());
+        helper.setText(emailBody, true); // true = HTML
 
-        // Adjuntar el documento
-        String filename = "Factura-" + factura.getNumeroFactura() + ".docx";
+        // Attach the document
+        String filename = "Invoice-" + invoice.getInvoiceNumber() + ".docx";
         ByteArrayResource attachment = new ByteArrayResource(document.toByteArray());
         helper.addAttachment(filename, attachment);
 
-        // Enviar
+        // Send
         mailSender.send(message);
-        log.info("Email enviado exitosamente a: {}", request.getTo());
+        log.info("Email sent successfully to: {}", request.getTo());
     }
 
-    private String generarCuerpoEmail(FacturaDto factura, String mensajePersonalizado) {
+    private String generateEmailBody(InvoiceDto invoice, String customMessage) {
         StringBuilder html = new StringBuilder();
         
         html.append("<!DOCTYPE html>");
@@ -89,10 +100,10 @@ public class EmailService {
         html.append(".container { max-width: 600px; margin: 0 auto; padding: 20px; }");
         html.append(".header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }");
         html.append(".content { padding: 20px; background-color: #f9f9f9; }");
-        html.append(".factura-info { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }");
-        html.append(".factura-info h3 { margin-top: 0; color: #4CAF50; }");
-        html.append(".detalle { margin: 10px 0; }");
-        html.append(".detalle strong { display: inline-block; width: 150px; }");
+        html.append(".invoice-info { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }");
+        html.append(".invoice-info h3 { margin-top: 0; color: #4CAF50; }");
+        html.append(".detail { margin: 10px 0; }");
+        html.append(".detail strong { display: inline-block; width: 150px; }");
         html.append(".footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }");
         html.append(".total { font-size: 18px; font-weight: bold; color: #4CAF50; }");
         html.append("</style>");
@@ -103,68 +114,68 @@ public class EmailService {
         
         // Header
         html.append("<div class='header'>");
-        html.append("<h1>Factura Adjunta</h1>");
+        html.append("<h1>Invoice Attached</h1>");
         html.append("</div>");
         
         // Content
         html.append("<div class='content'>");
         
-        // Mensaje personalizado
-        if (mensajePersonalizado != null && !mensajePersonalizado.isEmpty()) {
-            html.append("<p>").append(mensajePersonalizado).append("</p>");
+        // Custom message
+        if (customMessage != null && !customMessage.isEmpty()) {
+            html.append("<p>").append(customMessage).append("</p>");
         } else {
-            html.append("<p>Estimado/a ").append(factura.getNombreCliente()).append(",</p>");
-            html.append("<p>Adjunto encontrará la factura correspondiente a los servicios prestados.</p>");
+            html.append("<p>Dear ").append(invoice.getClientName()).append(",</p>");
+            html.append("<p>Please find attached the invoice for the services provided.</p>");
         }
         
-        // Información de la factura
-        html.append("<div class='factura-info'>");
-        html.append("<h3>Detalles de la Factura</h3>");
+        // Invoice information
+        html.append("<div class='invoice-info'>");
+        html.append("<h3>Invoice Details</h3>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>Número de Factura:</strong> ").append(factura.getNumeroFactura());
+        html.append("<div class='detail'>");
+        html.append("<strong>Invoice Number:</strong> ").append(invoice.getInvoiceNumber());
         html.append("</div>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>Fecha:</strong> ").append(factura.getFecha().format(DATE_FORMATTER));
+        html.append("<div class='detail'>");
+        html.append("<strong>Date:</strong> ").append(invoice.getDate().format(DATE_FORMATTER));
         html.append("</div>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>Período:</strong> ").append(factura.getMesFact());
+        html.append("<div class='detail'>");
+        html.append("<strong>Period:</strong> ").append(invoice.getBillingMonth());
         html.append("</div>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>Horas:</strong> ").append(factura.getHoras()).append(" horas");
+        html.append("<div class='detail'>");
+        html.append("<strong>Hours:</strong> ").append(invoice.getHours()).append(" hours");
         html.append("</div>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>Base Imponible:</strong> ").append(formatMoney(factura.getImponible())).append(" €");
+        html.append("<div class='detail'>");
+        html.append("<strong>Subtotal:</strong> ").append(formatMoney(invoice.getSubtotal())).append(" €");
         html.append("</div>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>IRPF (15%):</strong> ").append(formatMoney(factura.getIrpf())).append(" €");
+        html.append("<div class='detail'>");
+        html.append("<strong>Tax Withholding (15%):</strong> ").append(formatMoney(invoice.getTaxWithholding())).append(" €");
         html.append("</div>");
         
-        html.append("<div class='detalle'>");
-        html.append("<strong>IVA (21%):</strong> ").append(formatMoney(factura.getIva())).append(" €");
+        html.append("<div class='detail'>");
+        html.append("<strong>VAT (21%):</strong> ").append(formatMoney(invoice.getVat())).append(" €");
         html.append("</div>");
         
-        html.append("<div class='detalle total'>");
-        html.append("<strong>TOTAL:</strong> ").append(formatMoney(factura.getTotal())).append(" €");
+        html.append("<div class='detail total'>");
+        html.append("<strong>TOTAL:</strong> ").append(formatMoney(invoice.getTotal())).append(" €");
         html.append("</div>");
         
         html.append("</div>");
         
-        html.append("<p>Si tiene alguna duda o consulta, no dude en contactarnos.</p>");
-        html.append("<p>Saludos cordiales,<br><strong>").append(factura.getEmisorNombre()).append("</strong></p>");
+        html.append("<p>If you have any questions or concerns, please don't hesitate to contact us.</p>");
+        html.append("<p>Best regards,<br><strong>").append(invoice.getIssuerName()).append("</strong></p>");
         
         html.append("</div>");
         
         // Footer
         html.append("<div class='footer'>");
-        html.append("<p>Este es un correo automático. Por favor, no responda a este mensaje.</p>");
-        html.append("<p>").append(factura.getEmisorDireccion()).append(", ").append(factura.getEmisorCp()).append("</p>");
-        html.append("<p>NIF: ").append(factura.getEmisorNif()).append("</p>");
+        html.append("<p>This is an automated email. Please do not reply to this message.</p>");
+        html.append("<p>").append(invoice.getIssuerAddress()).append(", ").append(invoice.getIssuerPostalCode()).append("</p>");
+        html.append("<p>Tax ID: ").append(invoice.getIssuerTaxId()).append("</p>");
         html.append("</div>");
         
         html.append("</div>");

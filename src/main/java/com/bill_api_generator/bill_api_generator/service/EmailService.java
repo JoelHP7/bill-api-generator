@@ -12,7 +12,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.format.DateTimeFormatter;
@@ -46,9 +45,8 @@ public class EmailService {
      *
      * @param request Email request with recipient details and invoice ID
      * @throws MessagingException if there's an error sending the email
-     * @throws IOException if there's an error generating the document
      */
-    public void sendInvoiceEmail(EmailRequest request) throws MessagingException, IOException {
+    public void sendInvoiceEmail(EmailRequest request) throws MessagingException {
         log.info("Sending invoice via email. InvoiceID: {}, To: {}", request.getInvoiceId(), request.getTo());
 
         // Get the invoice

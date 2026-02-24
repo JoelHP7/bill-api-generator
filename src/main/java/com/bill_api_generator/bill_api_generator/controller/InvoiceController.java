@@ -23,19 +23,19 @@ import java.util.Map;
 @RequestMapping("/api/invoices")
 @RequiredArgsConstructor
 public class InvoiceController {
-    
+
     private final InvoiceService invoiceService;
-    
+
     /**
      * ========================================
      * NEW ENDPOINTS WITH REF (RECOMMENDED)
      * ========================================
      */
-    
+
     /**
      * Generate an invoice using client reference.
      * GET /api/invoices/generate/ref/{clientRef}?hours=160
-     * 
+     *
      * Returns:
      * - status: CREATED | DUPLICATE
      * - message: Description
@@ -47,19 +47,14 @@ public class InvoiceController {
             @PathVariable String clientRef,
             @RequestParam Integer hours,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            Map<String, Object> response = invoiceService.generateInvoiceByRef(clientRef, hours, date);
-            
-            String status = (String) response.get("status");
-            HttpStatus httpStatus = "CREATED".equals(status) ? HttpStatus.CREATED : HttpStatus.OK;
-            
-            return ResponseEntity.status(httpStatus).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        }
+        Map<String, Object> response = invoiceService.generateInvoiceByRef(clientRef, hours, date);
+
+        String status = (String) response.get("status");
+        HttpStatus httpStatus = "CREATED".equals(status) ? HttpStatus.CREATED : HttpStatus.OK;
+
+        return ResponseEntity.status(httpStatus).body(response);
     }
-    
+
     /**
      * Generate an invoice AND download the DOCX document using client reference.
      * GET /api/invoices/generate/ref/{clientRef}/document?hours=160
@@ -69,43 +64,35 @@ public class InvoiceController {
             @PathVariable String clientRef,
             @RequestParam Integer hours,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            ByteArrayOutputStream document = invoiceService.generateInvoiceWithDocumentByRef(clientRef, hours, date);
-            
-            String filename = "invoice-" + clientRef + "-" + 
-                    (date != null ? date.getYear() : LocalDate.now().getYear()) + ".docx";
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", filename);
-            headers.setContentLength(document.size());
-            
-            return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        ByteArrayOutputStream document = invoiceService.generateInvoiceWithDocumentByRef(clientRef, hours, date);
+
+        String filename = "invoice-" + clientRef + "-" +
+                (date != null ? date.getYear() : LocalDate.now().getYear()) + ".docx";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentLength(document.size());
+
+        return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.OK);
     }
-    
+
     /**
      * Get all invoices for a client by reference.
      * GET /api/invoices/client/{clientRef}
      */
     @GetMapping("/client/{clientRef}")
     public ResponseEntity<List<InvoiceDto>> getInvoicesByClientRef(@PathVariable String clientRef) {
-        try {
-            List<InvoiceDto> invoices = invoiceService.findByClientRef(clientRef);
-            return ResponseEntity.ok(invoices);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        List<InvoiceDto> invoices = invoiceService.findByClientRef(clientRef);
+        return ResponseEntity.ok(invoices);
     }
-    
+
     /**
      * ========================================
      * LEGACY ENDPOINTS WITH ID (COMPATIBILITY)
      * ========================================
      */
-    
+
     /**
      * Generate an invoice using client ID (legacy).
      * GET /api/invoices/generate/{clientId}?hours=160
@@ -115,19 +102,14 @@ public class InvoiceController {
             @PathVariable Long clientId,
             @RequestParam Integer hours,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            Map<String, Object> response = invoiceService.generateInvoice(clientId, hours, date);
-            
-            String status = (String) response.get("status");
-            HttpStatus httpStatus = "CREATED".equals(status) ? HttpStatus.CREATED : HttpStatus.OK;
-            
-            return ResponseEntity.status(httpStatus).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
-        }
+        Map<String, Object> response = invoiceService.generateInvoice(clientId, hours, date);
+
+        String status = (String) response.get("status");
+        HttpStatus httpStatus = "CREATED".equals(status) ? HttpStatus.CREATED : HttpStatus.OK;
+
+        return ResponseEntity.status(httpStatus).body(response);
     }
-    
+
     /**
      * Generate document using client ID (legacy).
      * GET /api/invoices/generate/{clientId}/document?hours=160
@@ -137,39 +119,31 @@ public class InvoiceController {
             @PathVariable Long clientId,
             @RequestParam Integer hours,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            ByteArrayOutputStream document = invoiceService.generateInvoiceWithDocument(clientId, hours, date);
-            
-            String filename = "invoice-" + (date != null ? date.getYear() : LocalDate.now().getYear()) + ".docx";
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", filename);
-            headers.setContentLength(document.size());
-            
-            return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        ByteArrayOutputStream document = invoiceService.generateInvoiceWithDocument(clientId, hours, date);
+
+        String filename = "invoice-" + (date != null ? date.getYear() : LocalDate.now().getYear()) + ".docx";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentLength(document.size());
+
+        return new ResponseEntity<>(document.toByteArray(), headers, HttpStatus.OK);
     }
-    
+
     /**
      * ========================================
      * COMMON ENDPOINTS
      * ========================================
      */
-    
+
     /**
      * Get an invoice by ID.
      * GET /api/invoices/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<InvoiceDto> getInvoiceById(@PathVariable Long id) {
-        try {
-            InvoiceDto invoice = invoiceService.findById(id);
-            return ResponseEntity.ok(invoice);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        InvoiceDto invoice = invoiceService.findById(id);
+        return ResponseEntity.ok(invoice);
     }
 }

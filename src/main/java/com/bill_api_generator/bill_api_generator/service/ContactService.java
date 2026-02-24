@@ -1,6 +1,9 @@
 package com.bill_api_generator.bill_api_generator.service;
 
 import com.bill_api_generator.bill_api_generator.dto.ContactDto;
+import com.bill_api_generator.bill_api_generator.exception.ClientNotFoundException;
+import com.bill_api_generator.bill_api_generator.exception.ContactDeletedException;
+import com.bill_api_generator.bill_api_generator.exception.ContactNotFoundException;
 import com.bill_api_generator.bill_api_generator.model.Client;
 import com.bill_api_generator.bill_api_generator.model.Contact;
 import com.bill_api_generator.bill_api_generator.repository.ClientRepository;
@@ -29,8 +32,8 @@ public class ContactService {
     @Transactional(readOnly = true)
     public List<ContactDto> findByClientRef(String clientRef) {
         Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
-                .orElseThrow(() -> new RuntimeException("Client not found with ref: " + clientRef));
-        
+                .orElseThrow(() -> new ClientNotFoundException(clientRef));
+
         return contactRepository.findByClientIdAndDeletedAtIsNull(client.getId()).stream()
                 .map(this::convertToDto)
                 .toList();
@@ -39,10 +42,10 @@ public class ContactService {
     @Transactional(readOnly = true)
     public ContactDto findById(Long id) {
         Contact contact = contactRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contact not found with id: " + id));
-        
+                .orElseThrow(() -> new ContactNotFoundException(id));
+
         if (contact.getDeletedAt() != null) {
-            throw new RuntimeException("Contact has been deleted (soft delete)");
+            throw new ContactDeletedException(contact.getId());
         }
         
         return convertToDto(contact);
@@ -51,8 +54,8 @@ public class ContactService {
     @Transactional(readOnly = true)
     public Optional<ContactDto> findPrimaryContact(String clientRef) {
         Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
-                .orElseThrow(() -> new RuntimeException("Client not found with ref: " + clientRef));
-        
+                .orElseThrow(() -> new ClientNotFoundException(clientRef));
+
         return contactRepository.findByClientIdAndIsPrimaryTrueAndDeletedAtIsNull(client.getId())
                 .map(this::convertToDto);
     }
@@ -60,7 +63,7 @@ public class ContactService {
     @Transactional
     public ContactDto create(String clientRef, ContactDto dto) {
         Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
-                .orElseThrow(() -> new RuntimeException("Client not found with ref: " + clientRef));
+                .orElseThrow(() -> new ClientNotFoundException(clientRef));
 
         // If marked as primary, unmark other primary contacts
         if (Boolean.TRUE.equals(dto.getIsPrimary())) {
@@ -85,10 +88,10 @@ public class ContactService {
     @Transactional
     public ContactDto update(Long id, ContactDto dto) {
         Contact contact = contactRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contact not found with id: " + id));
+                .orElseThrow(() -> new ContactNotFoundException(id));
 
         if (contact.getDeletedAt() != null) {
-            throw new RuntimeException("Cannot update a deleted contact");
+            throw new ContactDeletedException(contact.getId());
         }
 
         // If marking as primary, unmark others
@@ -111,10 +114,10 @@ public class ContactService {
     @Transactional
     public void delete(Long id) {
         Contact contact = contactRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contact not found with id: " + id));
+                .orElseThrow(() -> new ContactNotFoundException(id));
 
         if (contact.getDeletedAt() != null) {
-            throw new RuntimeException("Contact already deleted");
+            throw new ContactDeletedException(contact.getId());
         }
 
         // Soft delete

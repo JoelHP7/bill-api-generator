@@ -1,6 +1,11 @@
 package com.bill_api_generator.bill_api_generator.service;
 
 import com.bill_api_generator.bill_api_generator.dto.ClientDto;
+import com.bill_api_generator.bill_api_generator.exception.ClientDeletedException;
+import com.bill_api_generator.bill_api_generator.exception.ClientNotFoundException;
+import com.bill_api_generator.bill_api_generator.exception.ClientNotDeletedException;
+import com.bill_api_generator.bill_api_generator.exception.DuplicateClientRefException;
+import com.bill_api_generator.bill_api_generator.exception.DuplicateTaxIdException;
 import com.bill_api_generator.bill_api_generator.model.Client;
 import com.bill_api_generator.bill_api_generator.repository.ClientRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,10 +40,10 @@ public class ClientService {
     @Transactional(readOnly = true)
     public ClientDto findById(Long id) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
-        
+                .orElseThrow(() -> new ClientNotFoundException(id));
+
         if (client.getDeletedAt() != null) {
-            throw new RuntimeException("Client has been deleted (soft delete)");
+            throw new ClientDeletedException(id);
         }
         
         return convertToDto(client);
@@ -47,7 +52,7 @@ public class ClientService {
     @Transactional(readOnly = true)
     public ClientDto findByRef(String ref) {
         Client client = clientRepository.findByRefAndDeletedAtIsNull(ref)
-                .orElseThrow(() -> new RuntimeException("Client not found with ref: " + ref));
+                .orElseThrow(() -> new ClientNotFoundException(ref));
         return convertToDto(client);
     }
 
@@ -55,12 +60,12 @@ public class ClientService {
     public ClientDto create(ClientDto dto) {
         // Validate that no other client exists with the same tax ID
         if (clientRepository.existsByTaxId(dto.getTaxId())) {
-            throw new RuntimeException("A client already exists with tax ID: " + dto.getTaxId());
+            throw new DuplicateTaxIdException(dto.getTaxId());
         }
 
         // Validate that no other client exists with the same reference
         if (clientRepository.existsByRef(dto.getRef())) {
-            throw new RuntimeException("A client already exists with reference: " + dto.getRef());
+            throw new DuplicateClientRefException(dto.getRef());
         }
 
         Client client = Client.builder()
@@ -84,10 +89,10 @@ public class ClientService {
     @Transactional
     public ClientDto update(Long id, ClientDto dto) {
         Client existingClient = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+                .orElseThrow(() -> new ClientNotFoundException(id));
 
         if (existingClient.getDeletedAt() != null) {
-            throw new RuntimeException("Cannot update a deleted client");
+            throw new ClientDeletedException(id);
         }
 
         // Save previous state for history
@@ -96,14 +101,14 @@ public class ClientService {
         // Validate tax ID uniqueness (only if changed)
         if (!existingClient.getTaxId().equals(dto.getTaxId())) {
             if (clientRepository.existsByTaxId(dto.getTaxId())) {
-                throw new RuntimeException("A client already exists with tax ID: " + dto.getTaxId());
+                throw new DuplicateTaxIdException(dto.getTaxId());
             }
         }
 
         // Validate reference uniqueness (only if changed)
         if (!existingClient.getRef().equals(dto.getRef())) {
             if (clientRepository.existsByRef(dto.getRef())) {
-                throw new RuntimeException("A client already exists with reference: " + dto.getRef());
+                throw new DuplicateClientRefException(dto.getRef());
             }
         }
 
@@ -128,10 +133,10 @@ public class ClientService {
     @Transactional
     public void delete(Long id) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+                .orElseThrow(() -> new ClientNotFoundException(id));
 
         if (client.getDeletedAt() != null) {
-            throw new RuntimeException("Client already deleted");
+            throw new ClientDeletedException(id);
         }
 
         // Soft delete
@@ -147,10 +152,10 @@ public class ClientService {
     @Transactional
     public void restore(Long id) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
+                .orElseThrow(() -> new ClientNotFoundException(id));
 
         if (client.getDeletedAt() == null) {
-            throw new RuntimeException("Client is not deleted");
+            throw new ClientNotDeletedException(id);
         }
 
         client.setDeletedAt(null);

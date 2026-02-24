@@ -2,8 +2,10 @@ package com.bill_api_generator.bill_api_generator.controller;
 
 import com.bill_api_generator.bill_api_generator.dto.EmailRequest;
 import com.bill_api_generator.bill_api_generator.service.EmailService;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,14 +19,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/emails")
 @RequiredArgsConstructor
+@Slf4j
 public class EmailController {
-    
+
     private final EmailService emailService;
-    
+
     /**
      * Send an invoice via email.
      * POST /api/emails/send-invoice
-     * 
+     *
      * Body:
      * {
      *   "invoiceId": 1,
@@ -42,7 +45,8 @@ public class EmailController {
                     "status", "success",
                     "message", "Email sent successfully to " + request.getTo()
             ));
-        } catch (Exception e) {
+        } catch (MessagingException e) {
+            log.error("Failed to send email for invoice {}: {}", request.getInvoiceId(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                             "status", "error",
@@ -50,7 +54,7 @@ public class EmailController {
                     ));
         }
     }
-    
+
     /**
      * Alternative simpler endpoint.
      * POST /api/invoices/{id}/send-email?to=client@example.com
@@ -60,13 +64,13 @@ public class EmailController {
             @PathVariable Long invoiceId,
             @RequestParam String to,
             @RequestParam(required = false) String message) {
-        
+
         EmailRequest request = EmailRequest.builder()
                 .invoiceId(invoiceId)
                 .to(to)
                 .message(message)
                 .build();
-        
+
         return sendInvoiceEmail(request);
     }
 }

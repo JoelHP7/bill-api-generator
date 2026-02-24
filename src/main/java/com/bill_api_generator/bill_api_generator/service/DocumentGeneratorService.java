@@ -1,6 +1,7 @@
 package com.bill_api_generator.bill_api_generator.service;
 
 import com.bill_api_generator.bill_api_generator.dto.InvoiceDto;
+import com.bill_api_generator.bill_api_generator.exception.DocumentGenerationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.*;
 import org.springframework.core.io.ClassPathResource;
@@ -41,7 +42,7 @@ public class DocumentGeneratorService {
      * @return ByteArrayOutputStream with the generated document
      * @throws IOException if there's an error reading the template or generating the document
      */
-    public ByteArrayOutputStream generateInvoiceDocx(InvoiceDto invoiceDto) throws IOException {
+    public ByteArrayOutputStream generateInvoiceDocx(InvoiceDto invoiceDto) {
         log.info("Generating DOCX document for invoice: {}", invoiceDto.getInvoiceNumber());
 
         // 1. Load template from resources
@@ -78,7 +79,7 @@ public class DocumentGeneratorService {
 
         } catch (IOException e) {
             log.error("Error generating DOCX document for invoice: {}", invoiceDto.getInvoiceNumber(), e);
-            throw e;
+            throw new DocumentGenerationException(invoiceDto.getInvoiceNumber(), e);
         }
     }
 

@@ -10,8 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bill_api_generator.bill_api_generator.exception.ClientNotFoundException;
+import com.bill_api_generator.bill_api_generator.exception.InvoiceNotFoundException;
+
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -53,7 +55,7 @@ public class InvoiceService {
     @Transactional
     public Map<String, Object> generateInvoiceByRef(String clientRef, Integer hours, LocalDate date) {
         Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
-                .orElseThrow(() -> new RuntimeException("Client not found with ref: " + clientRef));
+                .orElseThrow(() -> new ClientNotFoundException(clientRef));
         return generateInvoiceInternal(client, hours, date);
     }
 
@@ -68,7 +70,7 @@ public class InvoiceService {
     @Transactional
     public Map<String, Object> generateInvoice(Long clientId, Integer hours, LocalDate date) {
         Client client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client not found with id: " + clientId));
+                .orElseThrow(() -> new ClientNotFoundException(clientId));
         return generateInvoiceInternal(client, hours, date);
     }
 
@@ -133,7 +135,7 @@ public class InvoiceService {
      * Generates invoice with document by client reference.
      */
     @Transactional
-    public ByteArrayOutputStream generateInvoiceWithDocumentByRef(String clientRef, Integer hours, LocalDate date) throws IOException {
+    public ByteArrayOutputStream generateInvoiceWithDocumentByRef(String clientRef, Integer hours, LocalDate date) {
         Map<String, Object> response = generateInvoiceByRef(clientRef, hours, date);
         InvoiceDto invoiceDto = (InvoiceDto) response.get("invoice");
         return documentGeneratorService.generateInvoiceDocx(invoiceDto);
@@ -143,7 +145,7 @@ public class InvoiceService {
      * Generates invoice with document by client ID.
      */
     @Transactional
-    public ByteArrayOutputStream generateInvoiceWithDocument(Long clientId, Integer hours, LocalDate date) throws IOException {
+    public ByteArrayOutputStream generateInvoiceWithDocument(Long clientId, Integer hours, LocalDate date) {
         Map<String, Object> response = generateInvoice(clientId, hours, date);
         InvoiceDto invoiceDto = (InvoiceDto) response.get("invoice");
         return documentGeneratorService.generateInvoiceDocx(invoiceDto);
@@ -166,14 +168,14 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public InvoiceDto findById(Long id) {
         Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+                .orElseThrow(() -> new InvoiceNotFoundException(id));
         return convertToDto(invoice);
     }
 
     @Transactional(readOnly = true)
     public List<InvoiceDto> findByClientRef(String clientRef) {
         Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
-                .orElseThrow(() -> new RuntimeException("Client not found with ref: " + clientRef));
+                .orElseThrow(() -> new ClientNotFoundException(clientRef));
         return invoiceRepository.findByClientId(client.getId()).stream()
                 .map(this::convertToDto)
                 .toList();

@@ -18,52 +18,40 @@ import java.util.List;
 @RequestMapping("/api/contacts")
 @RequiredArgsConstructor
 public class ContactController {
-    
+
     private final ContactService contactService;
-    
+
     /**
      * Get all contacts for a client.
      * GET /api/contacts/client/{clientRef}
      */
     @GetMapping("/client/{clientRef}")
     public ResponseEntity<List<ContactDto>> getContactsByClient(@PathVariable String clientRef) {
-        try {
-            List<ContactDto> contacts = contactService.findByClientRef(clientRef);
-            return ResponseEntity.ok(contacts);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        List<ContactDto> contacts = contactService.findByClientRef(clientRef);
+        return ResponseEntity.ok(contacts);
     }
-    
+
     /**
      * Get the primary contact for a client.
      * GET /api/contacts/client/{clientRef}/primary
      */
     @GetMapping("/client/{clientRef}/primary")
     public ResponseEntity<ContactDto> getPrimaryContact(@PathVariable String clientRef) {
-        try {
-            return contactService.findPrimaryContact(clientRef)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return contactService.findPrimaryContact(clientRef)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
-    
+
     /**
      * Get a contact by ID.
      * GET /api/contacts/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<ContactDto> getContactById(@PathVariable Long id) {
-        try {
-            ContactDto contact = contactService.findById(id);
-            return ResponseEntity.ok(contact);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        ContactDto contact = contactService.findById(id);
+        return ResponseEntity.ok(contact);
     }
-    
+
     /**
      * Create a contact for a client.
      * POST /api/contacts/client/{clientRef}
@@ -72,14 +60,10 @@ public class ContactController {
     public ResponseEntity<ContactDto> createContact(
             @PathVariable String clientRef,
             @Valid @RequestBody ContactDto dto) {
-        try {
-            ContactDto createdContact = contactService.create(clientRef, dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdContact);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        ContactDto createdContact = contactService.create(clientRef, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdContact);
     }
-    
+
     /**
      * Update an existing contact.
      * PUT /api/contacts/{id}
@@ -88,25 +72,17 @@ public class ContactController {
     public ResponseEntity<ContactDto> updateContact(
             @PathVariable Long id,
             @Valid @RequestBody ContactDto dto) {
-        try {
-            ContactDto updatedContact = contactService.update(id, dto);
-            return ResponseEntity.ok(updatedContact);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+        ContactDto updatedContact = contactService.update(id, dto);
+        return ResponseEntity.ok(updatedContact);
     }
-    
+
     /**
      * Delete a contact (soft delete).
      * DELETE /api/contacts/{id}
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteContact(@PathVariable Long id) {
-        try {
-            contactService.delete(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        contactService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

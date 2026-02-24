@@ -2,6 +2,10 @@ package com.bill_api_generator.bill_api_generator.service;
 
 import com.bill_api_generator.bill_api_generator.dto.EmailRequest;
 import com.bill_api_generator.bill_api_generator.dto.InvoiceDto;
+import com.bill_api_generator.bill_api_generator.model.Client;
+import com.bill_api_generator.bill_api_generator.model.Contact;
+import com.bill_api_generator.bill_api_generator.repository.ClientRepository;
+import com.bill_api_generator.bill_api_generator.repository.ContactRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -10,12 +14,15 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -30,6 +37,8 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final InvoiceService invoiceService;
     private final DocumentGeneratorService documentGeneratorService;
+    private final ClientRepository clientRepository;
+    private final ContactRepository contactRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DecimalFormat MONEY_FORMAT;
@@ -191,5 +200,136 @@ public class EmailService {
             return "0,00";
         }
         return MONEY_FORMAT.format(amount);
+    }
+
+    /**
+     * Sends a PDF invoice using client's primary contact configuration.
+     *
+     * @param clientRef Client reference code
+     * @param pdfFile PDF file to send
+     * @throws MessagingException if there's an error sending the email
+     * @throws IOException if there's an error reading the PDF
+     */
+    public void sendPdfByClientRef(String clientRef, MultipartFile pdfFile) 
+            throws MessagingException, IOException {
+        
+        log.info("Sending PDF invoice by client ref: {}", clientRef);
+        
+        // 1. Find the client
+        Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
+                .orElseThrow(() -> new RuntimeException("Client not found: " + clientRef));
+        
+        // 2. Find the primary contact
+        Contact primaryContact = contactRepository
+                .findByClientIdAndIsPrimaryAndDeletedAtIsNull(client.getId(), true)
+                .orElseThrow(() -> new RuntimeException(
+                    "No primary contact configured for client: " + clientRef));
+        
+        // 3. Validate that contact has email configured
+        if (primaryContact.getEmail() == null || primaryContact.getEmail().isBlank()) {
+            throw new RuntimeException(
+                "Primary contact for client " + clientRef + " has no email configured");
+        }
+        
+        // 4. Prepare email
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        
+        // Set recipient
+        helper.setTo(primaryContact.getEmail());
+        
+        // Set CC if configured
+        List<String> ccEmails = primaryContact.getEmailCcList();
+        if (!ccEmails.isEmpty()) {
+            helper.setCc(ccEmails.toArray(new String[0]));
+        }
+        
+        // Set subject (use template or default)
+        String subject = primaryContact.getEmailSubject();
+        if (subject == null || subject.isBlank()) {
+            subject = "Invoice - " + client.getName();
+        }
+        // Replace placeholders
+        subject = replacePlaceholders(subject, client, pdfFile.getOriginalFilename());
+        helper.setSubject(subject);
+        
+        // Set message body (use template or default)
+        String bodyText = primaryContact.getEmailMessage();
+        if (bodyText == null || bodyText.isBlank()) {
+            bodyText = "Dear " + client.getName() + ",\n\n" +
+                       "Please find attached your invoice.\n\n" +
+                       "Best regards";
+        }
+        // Replace placeholders and convert to HTML
+        bodyText = replacePlaceholders(bodyText, client, pdfFile.getOriginalFilename());
+        String htmlBody = convertToHtml(bodyText, client);
+        helper.setText(htmlBody, true);
+        
+        // Attach PDF
+        String filename = pdfFile.getOriginalFilename();
+        if (filename == null || filename.isBlank()) {
+            filename = "invoice-" + client.getRef() + ".pdf";
+        }
+        ByteArrayResource attachment = new ByteArrayResource(pdfFile.getBytes());
+        helper.addAttachment(filename, attachment);
+        
+        // 5. Send email
+        mailSender.send(message);
+        log.info("PDF invoice sent successfully to: {} for client: {}", 
+                 primaryContact.getEmail(), clientRef);
+    }
+
+    /**
+     * Replace placeholders in text templates.
+     * Supported placeholders: {clientName}, {invoiceNumber}, {date}
+     */
+    private String replacePlaceholders(String text, Client client, String filename) {
+        if (text == null) {
+            return "";
+        }
+        
+        String result = text;
+        result = result.replace("{clientName}", client.getName());
+        result = result.replace("{date}", LocalDate.now().format(DATE_FORMATTER));
+        
+        // Try to extract invoice number from filename
+        if (filename != null && filename.contains("-")) {
+            String invoiceNumber = filename.substring(0, filename.lastIndexOf("."));
+            result = result.replace("{invoiceNumber}", invoiceNumber);
+        }
+        
+        return result;
+    }
+
+    /**
+     * Convert plain text message to HTML with basic formatting.
+     */
+    private String convertToHtml(String text, Client client) {
+        StringBuilder html = new StringBuilder();
+        
+        html.append("<!DOCTYPE html>");
+        html.append("<html>");
+        html.append("<head>");
+        html.append("<meta charset='UTF-8'>");
+        html.append("<style>");
+        html.append("body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }");
+        html.append(".container { max-width: 600px; margin: 0 auto; padding: 20px; }");
+        html.append(".header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }");
+        html.append(".content { padding: 20px; background-color: #f9f9f9; white-space: pre-wrap; }");
+        html.append(".footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }");
+        html.append("</style>");
+        html.append("</head>");
+        html.append("<body>");
+        html.append("<div class='container'>");
+        html.append("<div class='header'><h1>Invoice</h1></div>");
+        html.append("<div class='content'>").append(text).append("</div>");
+        html.append("<div class='footer'>");
+        html.append("<p>This is an automated email. Please do not reply to this message.</p>");
+        html.append("</div>");
+        html.append("</div>");
+        html.append("</body>");
+        html.append("</html>");
+        
+        return html.toString();
     }
 }

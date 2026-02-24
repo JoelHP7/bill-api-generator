@@ -3,6 +3,7 @@ package com.bill_api_generator.bill_api_generator.service;
 import com.bill_api_generator.bill_api_generator.dto.InvoiceDto;
 import com.bill_api_generator.bill_api_generator.model.Client;
 import com.bill_api_generator.bill_api_generator.model.Invoice;
+import com.bill_api_generator.bill_api_generator.model.InvoiceCalculation;
 import com.bill_api_generator.bill_api_generator.repository.ClientRepository;
 import com.bill_api_generator.bill_api_generator.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final ClientRepository clientRepository;
     private final DocumentGeneratorService documentGeneratorService;
+    private final InvoiceCalculationService invoiceCalculationService;
 
     // Tax rate constants
     private static final BigDecimal TAX_WITHHOLDING_RATE = new BigDecimal("0.15"); // 15% IRPF
@@ -181,11 +183,10 @@ public class InvoiceService {
 
     private InvoiceDto convertToDto(Invoice invoice) {
         Client client = invoice.getClient();
-        BigDecimal subtotal = client.getRate().multiply(new BigDecimal(invoice.getHours()))
-                .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal taxWithholding = subtotal.multiply(TAX_WITHHOLDING_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal vat = subtotal.multiply(VAT_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal total = subtotal.subtract(taxWithholding).add(vat).setScale(2, RoundingMode.HALF_UP);
+        
+        // Get or calculate and store calculations
+        InvoiceCalculation calculation = invoiceCalculationService
+                .calculateAndStore(invoice, client);
 
         return InvoiceDto.builder()
                 .id(invoice.getSequentialNumber())
@@ -201,10 +202,10 @@ public class InvoiceService {
                 .issuerPostalCode(ISSUER_POSTAL_CODE)
                 .issuerTaxId(ISSUER_TAX_ID)
                 .issuerIban(ISSUER_IBAN)
-                .subtotal(subtotal)
-                .taxWithholding(taxWithholding)
-                .vat(vat)
-                .total(total)
+                .subtotal(calculation.getSubtotal())
+                .taxWithholding(calculation.getTaxWithholding())
+                .vat(calculation.getVat())
+                .total(calculation.getTotal())
                 .build();
     }
 }

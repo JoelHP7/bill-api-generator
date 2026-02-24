@@ -18,5 +18,10 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
     
     Optional<Contact> findByClientIdAndIsPrimaryTrueAndDeletedAtIsNull(Long clientId);
     
+    /**
+     * Find contact by client ID and isPrimary flag (for email sending)
+     */
+    Optional<Contact> findByClientIdAndIsPrimaryAndDeletedAtIsNull(Long clientId, Boolean isPrimary);
+    
     List<Contact> findByClientId(Long clientId);
 }

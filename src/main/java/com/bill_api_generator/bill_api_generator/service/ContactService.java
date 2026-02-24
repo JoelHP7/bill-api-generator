@@ -77,7 +77,16 @@ public class ContactService {
                 .phone(dto.getPhone())
                 .position(dto.getPosition())
                 .isPrimary(dto.getIsPrimary() != null ? dto.getIsPrimary() : false)
+                // New email configuration fields
+                .emailSubject(dto.getEmailSubject())
+                .emailMessage(dto.getEmailMessage())
+                .autoSendEmails(dto.getAutoSendEmails() != null ? dto.getAutoSendEmails() : false)
                 .build();
+        
+        // Set CC emails
+        if (dto.getEmailCc() != null && !dto.getEmailCc().isEmpty()) {
+            contact.setEmailCcList(dto.getEmailCc());
+        }
 
         Contact savedContact = contactRepository.save(contact);
         log.info("Contact created: {} for client: {}", savedContact.getName(), clientRef);
@@ -104,6 +113,16 @@ public class ContactService {
         contact.setPhone(dto.getPhone());
         contact.setPosition(dto.getPosition());
         contact.setIsPrimary(dto.getIsPrimary() != null ? dto.getIsPrimary() : false);
+        
+        // Update new email configuration fields
+        contact.setEmailSubject(dto.getEmailSubject());
+        contact.setEmailMessage(dto.getEmailMessage());
+        contact.setAutoSendEmails(dto.getAutoSendEmails() != null ? dto.getAutoSendEmails() : false);
+        
+        // Update CC emails
+        if (dto.getEmailCc() != null) {
+            contact.setEmailCcList(dto.getEmailCc());
+        }
 
         Contact updatedContact = contactRepository.save(contact);
         log.info("Contact updated: {}", updatedContact.getName());
@@ -146,6 +165,12 @@ public class ContactService {
                 .phone(contact.getPhone())
                 .position(contact.getPosition())
                 .isPrimary(contact.getIsPrimary())
+                // New email configuration fields
+                .emailCc(contact.getEmailCcList())
+                .emailSubject(contact.getEmailSubject())
+                .emailMessage(contact.getEmailMessage())
+                .autoSendEmails(contact.getAutoSendEmails())
+                // Audit fields
                 .createdAt(contact.getCreatedAt())
                 .updatedAt(contact.getUpdatedAt())
                 .deletedAt(contact.getDeletedAt())

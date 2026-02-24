@@ -2,6 +2,7 @@ package com.bill_api_generator.bill_api_generator.service;
 
 import com.bill_api_generator.bill_api_generator.dto.EmailRequest;
 import com.bill_api_generator.bill_api_generator.dto.InvoiceDto;
+import com.bill_api_generator.bill_api_generator.exception.ClientNotFoundException;
 import com.bill_api_generator.bill_api_generator.model.Client;
 import com.bill_api_generator.bill_api_generator.model.Contact;
 import com.bill_api_generator.bill_api_generator.repository.ClientRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -215,7 +217,7 @@ public class EmailService {
         
         // 1. Find the client
         Client client = clientRepository.findByRefAndDeletedAtIsNull(clientRef)
-                .orElseThrow(() -> new RuntimeException("Client not found: " + clientRef));
+                .orElseThrow(() -> new ClientNotFoundException(clientRef));
         
         // 2. Find the primary contact
         Contact primaryContact = contactRepository
